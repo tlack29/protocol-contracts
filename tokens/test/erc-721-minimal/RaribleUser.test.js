@@ -136,12 +136,37 @@ contract("ERC721RaribleUser minimal", accounts => {
         token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [zeroWord]], transferTo, {from: minter})
       );
 
-      await token.grantMinter(minter, {from: tokenOwner})
-      assert.equal(await token.isValidMinter(minter), true);
-      assert.equal(await token.isValidMinter(transferTo), false);
+      await token.addMinter(minter, {from: tokenOwner})
+      assert.equal(await token.isMinter(minter), true);
+      assert.equal(await token.isMinter(transferTo), false);
 
       await token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [zeroWord]], transferTo, {from: minter})
       assert.equal(await token.ownerOf(tokenId), transferTo);
+    });
+
+    it("mint and transfer with minter access control, after delete minter try transfer and mint, throw", async () => {
+      const minter = accounts[1];
+      let transferTo = accounts[2];
+      let anotherUser = accounts[2];
+
+      const tokenId = minter + "b00000000000000000000001";
+      const tokenURI = "//uri";
+
+      await token.addMinter(minter, {from: tokenOwner})
+      assert.equal(await token.isMinter(minter), true);
+      assert.equal(await token.isMinter(transferTo), false);
+
+      await token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [zeroWord]], transferTo, {from: minter})
+      assert.equal(await token.ownerOf(tokenId), transferTo);
+
+      await expectThrow(
+        token.removeMinter(minter, {from: anotherUser})
+      )
+      await token.removeMinter(minter, {from: tokenOwner});
+      await expectThrow(
+        token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [zeroWord]], transferTo, {from: minter})
+      );
+      assert.equal(await token.isMinter(minter), false);
     });
 
     it("mint and transfer with minter access control and minter signature", async () => {
@@ -158,9 +183,9 @@ contract("ERC721RaribleUser minimal", accounts => {
       );
 
       await token.setApprovalForAll(whiteListProxy, true, {from: minter})
-      await token.grantMinter(minter, {from: tokenOwner})
-      assert.equal(await token.isValidMinter(minter), true);
-      assert.equal(await token.isValidMinter(whiteListProxy), false);
+      await token.addMinter(minter, {from: tokenOwner})
+      assert.equal(await token.isMinter(minter), true);
+      assert.equal(await token.isMinter(whiteListProxy), false);
 
       await token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [signature]], transferTo, {from: whiteListProxy})
       assert.equal(await token.ownerOf(tokenId), transferTo);
@@ -180,9 +205,9 @@ contract("ERC721RaribleUser minimal", accounts => {
       );
 
       await token.setApprovalForAll(whiteListProxy, true, {from: minter})
-      await token.grantMinter(minter, {from: tokenOwner})
-      assert.equal(await token.isValidMinter(minter), true);
-      assert.equal(await token.isValidMinter(whiteListProxy), false);
+      await token.addMinter(minter, {from: tokenOwner})
+      assert.equal(await token.isMinter(minter), true);
+      assert.equal(await token.isMinter(whiteListProxy), false);
 
       await expectThrow(
         token.mintAndTransfer([tokenId, tokenURI, creators([minter]), [], [signature]], transferTo, {from: whiteListProxy})
